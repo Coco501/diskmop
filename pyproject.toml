@@ -28,7 +28,10 @@ classifiers = [
 diskmop = "diskmop.cli:main"
 
 [tool.setuptools]
-include-package-data = false
+include-package-data = true
 
 [tool.setuptools.packages.find]
 include = ["diskmop*"]
+
+[tool.setuptools.package-data]
+diskmop = ["assets/*"]

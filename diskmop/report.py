@@ -7,31 +7,16 @@ from urllib.parse import quote
 
 from diskmop.scanner import ScanStats
 
+_ASSETS = Path(__file__).parent / "assets"
+
 
 def _favicon_href() -> str:
-    svg = """
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <defs>
-    <radialGradient id="disk" cx="34%" cy="28%" r="78%">
-      <stop offset="0%" stop-color="#ffffff"/>
-      <stop offset="38%" stop-color="#d8dde5"/>
-      <stop offset="72%" stop-color="#98a1ad"/>
-      <stop offset="100%" stop-color="#6e7783"/>
-    </radialGradient>
-    <linearGradient id="handle" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#4f5561"/>
-      <stop offset="100%" stop-color="#242935"/>
-    </linearGradient>
-  </defs>
-  <circle cx="26" cy="32" r="19" fill="url(#disk)" stroke="#2a3140" stroke-width="2.5"/>
-  <circle cx="26" cy="32" r="8" fill="none" stroke="#eef2f7" stroke-width="2"/>
-  <path d="M18 20h4v4h-4zm4-4h4v4h-4zm4 4h4v4h-4z" fill="#ffffff" opacity=".92"/>
-  <path d="M36 13l4 1.2-8.7 28.7-4-1.2z" fill="url(#handle)" stroke="#2a3140" stroke-width="1.1"/>
-  <path d="M35 40l15 4.7-2.7 8.5-15-4.6z" fill="#c9ced6" stroke="#2a3140" stroke-width="1.3"/>
-  <path d="M34.7 48.1l2.8 7.2m4.3-5.8l2.3 6.3m4.5-5.5l1.9 5.9" stroke="#2a3140" stroke-width="1.5" stroke-linecap="round"/>
-</svg>
-""".strip()
+    svg = (_ASSETS / "favicon.svg").read_text(encoding="utf-8").strip()
     return f"data:image/svg+xml,{quote(svg)}"
+
+
+def _cog_icon_svg() -> str:
+    return (_ASSETS / "cog-icon.svg").read_text(encoding="utf-8").strip()
 
 
 def render_report(stats: ScanStats) -> str:
@@ -61,6 +46,7 @@ def render_report(stats: ScanStats) -> str:
     }
     data = json.dumps(payload, separators=(",", ":"))
     favicon = _favicon_href()
+    cog_icon = _cog_icon_svg()
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -152,18 +138,21 @@ def render_report(stats: ScanStats) -> str:
       gap: 12px;
     }}
     .picker {{
-      display: grid;
-      gap: 6px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
       font-size: 13px;
       color: var(--muted);
     }}
     .picker input {{
-      width: 100%;
-      min-height: 42px;
+      width: 28px;
+      height: 28px;
+      flex: 0 0 auto;
       border: 1px solid var(--line);
-      background: #fff;
-      border-radius: 12px;
-      padding: 4px;
+      background: none;
+      border-radius: 6px;
+      padding: 2px;
+      cursor: pointer;
     }}
     .settings-actions {{
       display: flex;
@@ -192,19 +181,6 @@ def render_report(stats: ScanStats) -> str:
       backdrop-filter: blur(14px);
     }}
     .hero-card {{ padding: 28px; }}
-    .eyebrow {{
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      padding: 7px 12px;
-      border-radius: 999px;
-      background: var(--accent-soft);
-      color: var(--accent);
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-    }}
     h1 {{
       margin: 16px 0 12px;
       font-size: clamp(2rem, 4vw, 3.4rem);
@@ -643,25 +619,14 @@ def render_report(stats: ScanStats) -> str:
       <div></div>
       <div class="settings-anchor">
         <button class="settings-toggle" id="settings-toggle" type="button" aria-label="Highlight colors">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="3.25"></circle>
-            <path d="m4.9 4.9 1.5 1.5"></path>
-            <path d="m17.6 17.6 1.5 1.5"></path>
-            <path d="m19.1 4.9-1.5 1.5"></path>
-            <path d="m6.4 17.6-1.5 1.5"></path>
-            <path d="M12 2.7v2"></path>
-            <path d="M12 19.3v2"></path>
-            <path d="M2.7 12h2"></path>
-            <path d="M19.3 12h2"></path>
-            <path d="M8.1 3.8h7.8l.7 2.1 2 .8 2-1 3.3 3.3-1 2 .8 2.1 2.1.7v4.4l-2.1.7-.8 2.1 1 2-3.3 3.3-2-1-2 .8-.7 2.1H8.1l-.7-2.1-2-.8-2 1-3.3-3.3 1-2-.8-2.1-2.1-.7v-4.4l2.1-.7.8-2.1-1-2 3.3-3.3 2 1 2-.8.7-2.1Z"></path>
-          </svg>
+          {cog_icon}
         </button>
         <div class="settings-panel" id="settings-panel">
           <h3>Highlight Colors</h3>
-          <p>Adjust the blue and green report accents.</p>
+          <p>Adjust the two report accent colors.</p>
           <div class="picker-grid">
-            <label class="picker">Blue bars<input type="color" id="picker-accent"></label>
-            <label class="picker">Green bars<input type="color" id="picker-accent-2"></label>
+            <label class="picker"><input type="color" id="picker-accent"> Primary accent</label>
+            <label class="picker"><input type="color" id="picker-accent-2"> Secondary accent</label>
           </div>
           <div class="settings-actions">
             <button class="mini-btn" id="reset-theme" type="button">Reset</button>
@@ -673,7 +638,6 @@ def render_report(stats: ScanStats) -> str:
 
     <section class="hero">
       <div class="panel hero-card">
-        <div class="eyebrow">diskmop report</div>
         <h1>diskmop</h1>
         <div class="report-for">report generated for:</div>
         <div class="path" id="root-path"></div>
