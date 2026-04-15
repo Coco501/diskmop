@@ -3,9 +3,10 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 import sys
+import time
 
 from diskmop.report import write_report
-from diskmop.scanner import ScanOptions, scan_directory
+from diskmop.scanner import ScanOptions, ScanProgress, scan_directory
 
 
 SIZE_SUFFIXES = [
@@ -41,6 +42,82 @@ def parse_size(value: str) -> int:
     if size < 0:
         raise argparse.ArgumentTypeError("size value cannot be negative")
     return int(size * multiplier)
+
+
+def format_bytes(value: int) -> str:
+    suffixes = ["B", "KB", "MB", "GB", "TB", "PB"]
+    size = float(value)
+    for suffix in suffixes:
+        if size < 1024 or suffix == suffixes[-1]:
+            return f"{int(size)} {suffix}" if suffix == "B" else f"{size:.1f} {suffix}"
+        size /= 1024
+    return f"{value} B"
+
+
+def choose_output_path(path: Path) -> tuple[Path, Path | None]:
+    if not path.exists():
+        return path, None
+
+    stem = path.stem
+    suffix = path.suffix or ".html"
+    parent = path.parent
+    counter = 1
+    while True:
+        candidate = parent / f"{stem}-{counter}{suffix}"
+        if not candidate.exists():
+            return candidate, path
+        counter += 1
+
+
+class ProgressReporter:
+    def __init__(self, enabled: bool):
+        self.enabled = enabled
+        self._frames = [
+            "====................",
+            ".====...............",
+            "..====..............",
+            "...====.............",
+            "....====............",
+            ".....====...........",
+            "......====..........",
+            ".......====.........",
+            "........====........",
+            ".........====.......",
+            "..........====......",
+            "...........====.....",
+            "............====....",
+            ".............====...",
+            "..............====..",
+            "...............====.",
+        ]
+        self._tick = 0
+        self._last_line_time = 0.0
+
+    def update(self, progress: ScanProgress) -> None:
+        if not self.enabled:
+            return
+        current_name = Path(progress.current_path).name or progress.current_path
+        message = (
+            f"Scanning [{self._frames[self._tick % len(self._frames)]}] "
+            f"{format_bytes(progress.total_size)}  "
+            f"{progress.files_seen} files  "
+            f"{progress.directories_seen} dirs  "
+            f"errors {progress.errors}  "
+            f"now {current_name}"
+        )
+        self._tick += 1
+        if sys.stderr.isatty():
+            width = 140
+            sys.stderr.write("\r" + message[:width].ljust(width))
+            sys.stderr.flush()
+            if progress.done:
+                sys.stderr.write("\n")
+        else:
+            now = time.time()
+            if progress.done or now - self._last_line_time >= 5:
+                sys.stderr.write(message + "\n")
+                sys.stderr.flush()
+                self._last_line_time = now
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -95,7 +172,14 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     try:
-        output_path_arg = Path(args.output).expanduser().resolve()
+        requested_output = Path(args.output).expanduser().resolve()
+        output_path_arg, replaced_path = choose_output_path(requested_output)
+        if replaced_path is not None:
+            print(
+                f"diskmop: warning: {replaced_path} already exists; writing new report to {output_path_arg}",
+                file=sys.stderr,
+            )
+        progress = ProgressReporter(enabled=True)
         stats = scan_directory(
             args.path,
             ScanOptions(
@@ -104,6 +188,7 @@ def main(argv: list[str] | None = None) -> int:
                 include_hidden=not args.hide_hidden,
                 exclude_paths={output_path_arg.as_posix()},
             ),
+            progress_callback=progress.update,
         )
         stats.file_alert_bytes = args.flag_files_over
         stats.directory_alert_bytes = args.flag_directories_over

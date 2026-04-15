@@ -7,6 +7,7 @@ import os
 import stat
 import time
 from pathlib import Path
+from typing import Callable
 
 
 @dataclass(slots=True)
@@ -61,6 +62,17 @@ class ScanStats:
     directories: list[dict[str, object]]
     files: list[dict[str, object]]
     extensions: list[dict[str, object]]
+
+
+@dataclass(slots=True)
+class ScanProgress:
+    current_path: str
+    files_seen: int
+    directories_seen: int
+    total_size: int
+    errors: int
+    depth: int
+    done: bool = False
 
 
 class TopN:
@@ -132,7 +144,11 @@ def _file_payload(record: FileRecord) -> dict[str, object]:
     }
 
 
-def scan_directory(root: str | os.PathLike[str], options: ScanOptions | None = None) -> ScanStats:
+def scan_directory(
+    root: str | os.PathLike[str],
+    options: ScanOptions | None = None,
+    progress_callback: Callable[[ScanProgress], None] | None = None,
+) -> ScanStats:
     scan_options = options or ScanOptions()
     root_path = Path(root).expanduser().resolve()
     if not root_path.exists():
@@ -149,6 +165,9 @@ def scan_directory(root: str | os.PathLike[str], options: ScanOptions | None = N
     extension_sizes: dict[str, int] = {}
     errors: list[str] = []
     root_children: list[dict[str, object]] = []
+    progress_total_size = 0
+    progress_directories_seen = 0
+    progress_last_emit = started_wall
 
     @dataclass(slots=True)
     class Frame:
@@ -171,6 +190,7 @@ def scan_directory(root: str | os.PathLike[str], options: ScanOptions | None = N
         frame_str = _to_posix(str(frame.path))
 
         if frame.iterator is None:
+            progress_directories_seen += 1
             try:
                 frame.iterator = os.scandir(frame.path)
             except OSError as exc:
@@ -236,6 +256,7 @@ def scan_directory(root: str | os.PathLike[str], options: ScanOptions | None = N
                 continue
 
             size = entry_stat.st_size
+            progress_total_size += size
             frame.direct_file_size += size
             frame.direct_file_count += 1
             extension = _extension_for(name)
@@ -263,6 +284,21 @@ def scan_directory(root: str | os.PathLike[str], options: ScanOptions | None = N
         except OSError as exc:
             errors.append(f"{entry_str}: {exc.strerror or exc}")
 
+        if progress_callback is not None:
+            now = time.perf_counter()
+            if now - progress_last_emit >= 0.12:
+                progress_callback(
+                    ScanProgress(
+                        current_path=frame_str,
+                        files_seen=file_top.seen,
+                        directories_seen=progress_directories_seen,
+                        total_size=progress_total_size,
+                        errors=len(errors),
+                        depth=frame.depth,
+                    )
+                )
+                progress_last_emit = now
+
     if root_record is None:
         raise RuntimeError(f"Failed to scan directory: {root_str}")
 
@@ -278,6 +314,18 @@ def scan_directory(root: str | os.PathLike[str], options: ScanOptions | None = N
 
     finished_at = datetime.now(timezone.utc).isoformat()
     duration = time.perf_counter() - started_wall
+    if progress_callback is not None:
+        progress_callback(
+            ScanProgress(
+                current_path=root_str,
+                files_seen=file_top.seen,
+                directories_seen=progress_directories_seen,
+                total_size=progress_total_size,
+                errors=len(errors),
+                depth=0,
+                done=True,
+            )
+        )
     return ScanStats(
         root_path=root_str,
         started_at=started_at,

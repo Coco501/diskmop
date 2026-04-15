@@ -8,15 +8,26 @@ It is designed to handle deep and large trees without recursive Python calls. Ve
 
 - Iterative directory walk for deep trees
 - Self-contained HTML report with no external assets
-- Largest files and directories tables with search and sorting
+- Largest files and directories tables with search, pagination, and collapsible sections
 - Root-child usage visualization
 - Extension breakdown
+- Saved theme palette controls directly in the report UI
+- Collision-safe output naming when a report file already exists
+- Live CLI progress feedback during long scans
 - Truncation controls so huge trees do not generate unusable HTML
 
 ## Install
 
 ```bash
-python -m pip install .
+pipx install .
+```
+
+For development:
+
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install -e .
 ```
 
 ## Usage
