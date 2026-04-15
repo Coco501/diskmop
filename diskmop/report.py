@@ -391,7 +391,7 @@ def render_report(stats: ScanStats) -> str:
       transition: transform .16s ease;
     }}
     .collapse-btn[aria-expanded="false"] svg {{
-      transform: rotate(-90deg);
+      transform: rotate(180deg);
     }}
     .section-body {{
       padding: 18px 22px 22px;
@@ -539,6 +539,26 @@ def render_report(stats: ScanStats) -> str:
       opacity: .45;
       cursor: default;
     }}
+    .pager-btn-num {{
+      min-width: 40px;
+      padding: 10px 8px;
+      text-align: center;
+    }}
+    .pager-btn-active {{
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+      font-weight: 600;
+    }}
+    .pager-ellipsis {{
+      padding: 0 4px;
+      color: var(--muted);
+      align-self: center;
+    }}
+    .pager-info {{
+      color: var(--muted);
+      font-size: 13px;
+    }}
     .notice {{
       padding: 14px 16px;
       border-radius: 16px;
@@ -661,13 +681,18 @@ def render_report(stats: ScanStats) -> str:
       </div>
     </section>
 
-    <section class="section-card is-open" id="directories-section">
+    <section class="section-card" id="directories-section">
       <div class="section-header">
+        <button class="collapse-btn" type="button" id="directories-collapse" aria-expanded="false" aria-controls="directory-section-body" aria-label="Expand largest directories">
+          <svg viewBox="0 0 20 20" aria-hidden="true">
+            <path d="m4 12 6-6 6 6"></path>
+          </svg>
+        </button>
         <div class="summary-copy">
           <h2>Largest Directories</h2>
         </div>
       </div>
-      <div class="section-body" id="directory-section-body">
+      <div class="section-body" id="directory-section-body" hidden>
         <div class="controls">
           <div class="control-group">
             <label class="search-control">
@@ -692,11 +717,16 @@ def render_report(stats: ScanStats) -> str:
 
     <section class="section-card" id="files-section">
       <div class="section-header">
+        <button class="collapse-btn" type="button" id="files-collapse" aria-expanded="false" aria-controls="file-section-body" aria-label="Expand largest files">
+          <svg viewBox="0 0 20 20" aria-hidden="true">
+            <path d="m4 12 6-6 6 6"></path>
+          </svg>
+        </button>
         <div class="summary-copy">
           <h2>Largest Files</h2>
         </div>
       </div>
-      <div class="section-body" id="file-section-body">
+      <div class="section-body" id="file-section-body" hidden>
         <div class="controls">
           <div class="control-group">
             <label class="search-control">
@@ -719,9 +749,9 @@ def render_report(stats: ScanStats) -> str:
       </div>
     </section>
 
-    <section class="section-card is-open" id="scan-notes-section">
+    <section class="section-card" id="scan-notes-section">
       <div class="section-header">
-        <button class="collapse-btn" type="button" id="scan-notes-collapse" aria-expanded="true" aria-controls="scan-notes-body" aria-label="Collapse scan notes">
+        <button class="collapse-btn" type="button" id="scan-notes-collapse" aria-expanded="false" aria-controls="scan-notes-body" aria-label="Expand scan notes">
           <svg viewBox="0 0 20 20" aria-hidden="true">
             <path d="m4 12 6-6 6 6"></path>
           </svg>
@@ -731,7 +761,7 @@ def render_report(stats: ScanStats) -> str:
           <p>Retention limits, scan behavior, and any filesystem issues found during collection.</p>
         </div>
       </div>
-      <div class="section-body" id="scan-notes-body">
+      <div class="section-body" id="scan-notes-body" hidden>
         <div class="notes-list" id="notices"></div>
       </div>
     </section>
@@ -814,7 +844,7 @@ def render_report(stats: ScanStats) -> str:
       }});
     }}
 
-    function setupSectionToggle(sectionId, buttonId, bodyId) {{
+    function setupSectionToggle(sectionId, buttonId, bodyId, label) {{
       const section = byId(sectionId);
       const button = byId(buttonId);
       const body = byId(bodyId);
@@ -824,7 +854,7 @@ def render_report(stats: ScanStats) -> str:
         body.hidden = isOpen;
         section.classList.toggle("is-open", !isOpen);
         button.setAttribute("aria-expanded", String(!isOpen));
-        button.setAttribute("aria-label", `${{isOpen ? "Expand" : "Collapse"}} scan notes`);
+        button.setAttribute("aria-label", `${{isOpen ? "Expand" : "Collapse"}} ${{label}}`);
       }});
     }}
 
@@ -983,17 +1013,36 @@ def render_report(stats: ScanStats) -> str:
           }});
         }}
 
+        const pageNums = (() => {{
+          const s = new Set([1, totalPages]);
+          for (let p = Math.max(1, state.page - 2); p <= Math.min(totalPages, state.page + 2); p++) s.add(p);
+          return [...s].sort((a, b) => a - b);
+        }})();
+        let numHtml = "";
+        let prevPage = 0;
+        for (const p of pageNums) {{
+          if (prevPage && p - prevPage > 1) numHtml += `<span class="pager-ellipsis">&hellip;</span>`;
+          numHtml += `<button class="pager-btn pager-btn-num${{p === state.page ? " pager-btn-active" : ""}}" type="button" data-page="${{p}}">${{p}}</button>`;
+          prevPage = p;
+        }}
         byId(config.pagerId).innerHTML = `
-          <div>Page <strong>${{fmtInt(state.page)}}</strong> of <strong>${{fmtInt(totalPages)}}</strong></div>
+          <div class="pager-info">Page <strong>${{fmtInt(state.page)}}</strong> of <strong>${{fmtInt(totalPages)}}</strong></div>
           <div class="pager-controls">
-            <button class="pager-btn" type="button" data-action="prev" ${{state.page <= 1 ? "disabled" : ""}}>Previous</button>
-            <button class="pager-btn" type="button" data-action="next" ${{state.page >= totalPages ? "disabled" : ""}}>Next</button>
+            <button class="pager-btn" type="button" data-action="prev" ${{state.page <= 1 ? "disabled" : ""}}>&#8592; Prev</button>
+            ${{numHtml}}
+            <button class="pager-btn" type="button" data-action="next" ${{state.page >= totalPages ? "disabled" : ""}}>Next &#8594;</button>
           </div>
         `;
         byId(config.pagerId).querySelectorAll("[data-action]").forEach((button) => {{
           button.addEventListener("click", () => {{
             if (button.dataset.action === "prev" && state.page > 1) state.page -= 1;
             if (button.dataset.action === "next" && state.page < totalPages) state.page += 1;
+            render();
+          }});
+        }});
+        byId(config.pagerId).querySelectorAll("[data-page]").forEach((button) => {{
+          button.addEventListener("click", () => {{
+            state.page = Number(button.dataset.page);
             render();
           }});
         }});
@@ -1065,7 +1114,9 @@ def render_report(stats: ScanStats) -> str:
     }});
 
     setupThemeControls();
-    setupSectionToggle("scan-notes-section", "scan-notes-collapse", "scan-notes-body");
+    setupSectionToggle("scan-notes-section", "scan-notes-collapse", "scan-notes-body", "scan notes");
+    setupSectionToggle("directories-section", "directories-collapse", "directory-section-body", "largest directories");
+    setupSectionToggle("files-section", "files-collapse", "file-section-body", "largest files");
   </script>
 </body>
 </html>
