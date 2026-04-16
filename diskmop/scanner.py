@@ -199,6 +199,12 @@ def scan_directory(
 
         try:
             entry = next(frame.iterator)
+        except OSError as exc:
+            errors.append(f"{frame_str}: {exc.strerror or exc}")
+            if hasattr(frame.iterator, "close"):
+                frame.iterator.close()
+            frame.iterator = iter(())
+            continue
         except StopIteration:
             if hasattr(frame.iterator, "close"):
                 frame.iterator.close()
@@ -255,7 +261,7 @@ def scan_directory(
             if not stat.S_ISREG(entry_stat.st_mode):
                 continue
 
-            size = entry_stat.st_size
+            size = entry_stat.st_blocks * 512
             progress_total_size += size
             frame.direct_file_size += size
             frame.direct_file_count += 1
