@@ -104,8 +104,12 @@ class ProgressReporter:
         if not self.enabled:
             return
         current_name = Path(progress.current_path).name or progress.current_path
+        n = len(self._frames)
+        period = 2 * (n - 1)
+        pos = self._tick % period
+        frame = self._frames[pos if pos < n else period - pos]
         message = (
-            f"Scanning [{self._frames[self._tick % len(self._frames)]}] "
+            f"Scanning [{frame}] "
             f"{format_bytes(progress.total_size)}  "
             f"{progress.files_seen} files  "
             f"{progress.directories_seen} dirs  "
