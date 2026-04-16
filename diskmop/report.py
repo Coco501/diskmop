@@ -872,9 +872,9 @@ def render_report(stats: ScanStats) -> str:
     byId("root-path").textContent = data.meta.rootPath;
     byId("stats").innerHTML = [
       ["Total Size", fmtBytes(data.meta.totalSize)],
+      ["Scan Time", `${{data.meta.durationSeconds.toFixed(2)}}s`],
       ["Files", fmtInt(data.meta.fileCount)],
       ["Directories", fmtInt(data.meta.directoryCount)],
-      ["Scan Time", `${{data.meta.durationSeconds.toFixed(2)}}s`],
     ].map(([label, value]) => `
       <div class="stat">
         <div class="label">${{label}}</div>
