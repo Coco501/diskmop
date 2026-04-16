@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 from pathlib import Path
 import sys
 import time
@@ -118,7 +119,7 @@ class ProgressReporter:
         )
         self._tick += 1
         if sys.stderr.isatty():
-            width = 140
+            width = os.get_terminal_size(sys.stderr.fileno()).columns
             sys.stderr.write("\r" + message[:width].ljust(width))
             sys.stderr.flush()
             if progress.done:
