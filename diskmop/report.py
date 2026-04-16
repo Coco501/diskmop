@@ -645,11 +645,11 @@ def render_report(stats: ScanStats) -> str:
     </button>
     <div class="settings-panel" id="settings-panel">
       <h3>Highlight Colors</h3>
-      <p>Adjust the report accent and flag colors.</p>
+      <p id="settings-desc">Adjust the report accent colors</p>
       <div class="picker-grid">
         <label class="picker"><input type="color" id="picker-accent"> Primary accent</label>
         <label class="picker"><input type="color" id="picker-accent-2"> Secondary accent</label>
-        <label class="picker"><input type="color" id="picker-flag"> Flagged items</label>
+        <label class="picker" id="picker-flag-row" hidden><input type="color" id="picker-flag"> Flagged items</label>
       </div>
       <div class="settings-actions">
         <button class="mini-btn" id="reset-theme" type="button">Reset</button>
@@ -834,6 +834,7 @@ def render_report(stats: ScanStats) -> str:
       const initial = stored ? JSON.parse(stored) : defaultTheme;
       applyTheme(initial);
 
+      if (data.meta.fileAlertBytes) byId("picker-flag-row").hidden = false;
       byId("picker-accent").addEventListener("input", () => applyTheme(currentTheme()));
       byId("picker-accent-2").addEventListener("input", () => applyTheme(currentTheme()));
       byId("picker-flag").addEventListener("input", () => applyTheme(currentTheme()));
@@ -906,7 +907,7 @@ def render_report(stats: ScanStats) -> str:
         </div>
         <div class="bar-track"><div class="bar-fill ${{entryFlagged(row, row.kind) ? "alert" : ""}}" style="width:${{(row.size / rootMax) * 100}}%"></div></div>
       </div>
-    `).join("") : `<div class="empty">No child entries were retained for visualization.</div>`;
+    `).join("") : `<div class="empty">No child entries were retained for visualization</div>`;
 
     const extMax = Math.max(1, ...data.extensions.map((row) => row.size));
     byId("extensions").innerHTML = data.extensions.length ? data.extensions.slice(0, 14).map((row) => `
@@ -915,7 +916,7 @@ def render_report(stats: ScanStats) -> str:
         <div class="ext-bar"><span style="width:${{(row.size / extMax) * 100}}%"></span></div>
         <div>${{fmtBytes(row.size)}}</div>
       </div>
-    `).join("") : `<div class="empty">No regular files were found in the scanned subtree.</div>`;
+    `).join("") : `<div class="empty">No regular files were found in the scanned subtree</div>`;
 
     const notices = [];
     if (data.meta.truncatedDirectories > 0) {{
@@ -951,7 +952,7 @@ def render_report(stats: ScanStats) -> str:
             <p>${{note.body}}</p>
           </div>
         `).join("")
-      : `<div class="empty">No retention limits or scan issues were recorded for this run.</div>`;
+      : `<div class="empty">No retention limits or scan issues were recorded for this run</div>`;
 
     function buildTable(config) {{
       const state = {{
@@ -1002,7 +1003,7 @@ def render_report(stats: ScanStats) -> str:
           <div>Showing <strong>${{pageRows.length ? fmtInt(start + 1) : "0"}}-${{fmtInt(start + pageRows.length)}}</strong> of <strong>${{fmtInt(rows.length)}}</strong> retained rows</div>
         `;
         if (!pageRows.length) {{
-          byId(config.mountId).innerHTML = `<div class="empty">No rows match the current filter.</div>`;
+          byId(config.mountId).innerHTML = `<div class="empty">No rows match the current filter</div>`;
         }} else {{
           byId(config.mountId).innerHTML = `
             <table>
