@@ -672,12 +672,12 @@ def render_report(stats: ScanStats) -> str:
     <section class="grid">
       <div class="panel section">
         <h2>Top-Level Space Map</h2>
-        <p>Largest immediate children of the scanned root.</p>
+        <p>Largest immediate children of the scanned root</p>
         <div class="bars" id="root-children"></div>
       </div>
       <div class="panel section">
         <h2>Extension Breakdown</h2>
-        <p>Approximate size share by file extension.</p>
+        <p>Approximate size share by file extension</p>
         <div class="ext-list" id="extensions"></div>
       </div>
     </section>
@@ -759,7 +759,7 @@ def render_report(stats: ScanStats) -> str:
         </button>
         <div class="summary-copy">
           <h2>Scan Notes</h2>
-          <p>Retention limits, scan behavior, and any filesystem issues found during collection.</p>
+          <p>Retention limits, scan behavior, and any filesystem issues found during collection</p>
         </div>
       </div>
       <div class="section-body" id="scan-notes-body" hidden>
@@ -886,8 +886,7 @@ def render_report(stats: ScanStats) -> str:
       <div>Started: ${{fmtDate(data.meta.startedAt)}}</div>
       <div>Finished: ${{fmtDate(data.meta.finishedAt)}}</div>
       <div>Hidden entries included: ${{data.meta.scannedHidden ? "yes" : "no"}}</div>
-      <div>File flag threshold: ${{data.meta.fileAlertBytes ? fmtBytes(data.meta.fileAlertBytes) : "off"}}</div>
-      <div>Directory flag threshold: ${{data.meta.directoryAlertBytes ? fmtBytes(data.meta.directoryAlertBytes) : "off"}}</div>
+      <div>Flag threshold: ${{data.meta.fileAlertBytes ? fmtBytes(data.meta.fileAlertBytes) : "off"}}</div>
     `;
 
     const rootMax = Math.max(1, ...data.rootChildren.map((row) => row.size));
