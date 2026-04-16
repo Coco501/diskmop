@@ -74,6 +74,7 @@ def render_report(stats: ScanStats) -> str:
       --font-mono: "IBM Plex Mono", "SFMono-Regular", monospace;
     }}
     * {{ box-sizing: border-box; }}
+    [hidden] {{ display: none !important; }}
     html, body {{
       margin: 0;
       min-height: 100%;
