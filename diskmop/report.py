@@ -83,17 +83,15 @@ def render_report(stats: ScanStats) -> str:
       color: var(--text);
       font-family: var(--font-ui);
     }}
-    body {{ padding: 32px 20px 48px; }}
+    body {{ padding: 48px 20px 48px; }}
     button, input, select {{ font: inherit; color: inherit; }}
     .shell {{ max-width: 1320px; margin: 0 auto; }}
-    .topbar {{
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 18px;
-      margin-bottom: 18px;
+    .settings-anchor {{
+      position: fixed;
+      top: 16px;
+      right: 20px;
+      z-index: 30;
     }}
-    .settings-anchor {{ position: relative; flex: 0 0 auto; }}
     .settings-toggle {{
       width: 48px;
       height: 48px;
@@ -181,8 +179,14 @@ def render_report(stats: ScanStats) -> str:
       backdrop-filter: blur(14px);
     }}
     .hero-card {{ padding: 28px; }}
+    .entry-icon {{
+      flex-shrink: 0;
+      color: var(--muted);
+      opacity: 0.75;
+      display: block;
+    }}
     h1 {{
-      margin: 16px 0 12px;
+      margin: 0 0 12px;
       font-size: clamp(2rem, 4vw, 3.4rem);
       line-height: .98;
       letter-spacing: -.05em;
@@ -634,28 +638,25 @@ def render_report(stats: ScanStats) -> str:
   </style>
 </head>
 <body>
-  <div class="shell">
-    <div class="topbar">
-      <div></div>
-      <div class="settings-anchor">
-        <button class="settings-toggle" id="settings-toggle" type="button" aria-label="Highlight colors">
-          {cog_icon}
-        </button>
-        <div class="settings-panel" id="settings-panel">
-          <h3>Highlight Colors</h3>
-          <p>Adjust the two report accent colors.</p>
-          <div class="picker-grid">
-            <label class="picker"><input type="color" id="picker-accent"> Primary accent</label>
-            <label class="picker"><input type="color" id="picker-accent-2"> Secondary accent</label>
-          </div>
-          <div class="settings-actions">
-            <button class="mini-btn" id="reset-theme" type="button">Reset</button>
-            <button class="mini-btn" id="close-settings" type="button">Close</button>
-          </div>
-        </div>
+  <div class="settings-anchor">
+    <button class="settings-toggle" id="settings-toggle" type="button" aria-label="Highlight colors">
+      {cog_icon}
+    </button>
+    <div class="settings-panel" id="settings-panel">
+      <h3>Highlight Colors</h3>
+      <p>Adjust the two report accent colors.</p>
+      <div class="picker-grid">
+        <label class="picker"><input type="color" id="picker-accent"> Primary accent</label>
+        <label class="picker"><input type="color" id="picker-accent-2"> Secondary accent</label>
+      </div>
+      <div class="settings-actions">
+        <button class="mini-btn" id="reset-theme" type="button">Reset</button>
+        <button class="mini-btn" id="close-settings" type="button">Close</button>
       </div>
     </div>
+  </div>
 
+  <div class="shell">
     <section class="hero">
       <div class="panel hero-card">
         <h1>diskmop</h1>
@@ -771,6 +772,9 @@ def render_report(stats: ScanStats) -> str:
   <script>
     const data = JSON.parse(document.getElementById("diskmop-data").textContent);
     const byId = (id) => document.getElementById(id);
+
+    const iconFolder = `<svg class="entry-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`;
+    const iconFile = `<svg class="entry-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>`;
     const storageKey = "diskmop-highlight-theme-v1";
     const defaultTheme = {{
       accent: "#1463ff",
@@ -891,8 +895,8 @@ def render_report(stats: ScanStats) -> str:
       <div class="bar-row">
         <div class="bar-head">
           <div class="bar-left">
+            ${{row.kind === "directory" ? iconFolder : iconFile}}
             <strong>${{row.name}}</strong>
-            <span class="tag">${{row.kind}}</span>
             ${{entryFlagged(row, row.kind) ? '<span class="tag alert">flagged</span>' : ""}}
           </div>
           <div>${{fmtBytes(row.size)}}</div>
@@ -1076,7 +1080,7 @@ def render_report(stats: ScanStats) -> str:
       rowRenderer: (row) => `
         <tr>
           <td>
-            <div class="name-cell">${{row.name}} ${{entryFlagged(row, "directory") ? '<span class="tag alert">flagged</span>' : ""}}</div>
+            <div class="name-cell">${{iconFolder}} ${{row.name}} ${{entryFlagged(row, "directory") ? '<span class="tag alert">flagged</span>' : ""}}</div>
             <div class="path-cell">${{row.path}}</div>
           </td>
           <td>${{fmtBytes(row.size)}}</td>
@@ -1103,7 +1107,7 @@ def render_report(stats: ScanStats) -> str:
       rowRenderer: (row) => `
         <tr>
           <td>
-            <div class="name-cell">${{row.name}} ${{entryFlagged(row, "file") ? '<span class="tag alert">flagged</span>' : ""}}</div>
+            <div class="name-cell">${{iconFile}} ${{row.name}} ${{entryFlagged(row, "file") ? '<span class="tag alert">flagged</span>' : ""}}</div>
             <div class="path-cell">${{row.path}}</div>
           </td>
           <td>${{fmtBytes(row.size)}}</td>

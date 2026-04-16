@@ -1,9 +1,12 @@
+# PYTHON_ARGCOMPLETE_OK
 from __future__ import annotations
 
 import argparse
 from pathlib import Path
 import sys
 import time
+
+import argcomplete
 
 from diskmop.report import write_report
 from diskmop.scanner import ScanOptions, ScanProgress, scan_directory
@@ -12,10 +15,13 @@ from diskmop.scanner import ScanOptions, ScanProgress, scan_directory
 SIZE_SUFFIXES = [
     ("pb", 1024**5),
     ("tb", 1024**4),
+    ("t", 1024**4),
     ("gb", 1024**3),
+    ("g", 1024**3),
     ("mb", 1024**2),
+    ("m", 1024**2),
     ("kb", 1024),
-    ("b", 1),
+    ("k", 1024),
 ]
 
 
@@ -150,25 +156,26 @@ def build_parser() -> argparse.ArgumentParser:
         help="Maximum number of directories to embed in the report. Defaults to 2000.",
     )
     parser.add_argument(
-        "--hide-hidden",
+        "-H", "--hide-hidden",
         action="store_true",
         help="Skip filesystem entries whose names start with a dot.",
     )
     parser.add_argument(
-        "--flag-files-over",
+        "-f", "--flag",
         type=parse_size,
-        help="Mark files larger than this size in the HTML report, for example 10GB.",
-    )
-    parser.add_argument(
-        "--flag-directories-over",
-        type=parse_size,
-        help="Mark directories larger than this size in the HTML report, for example 500GB.",
+        metavar="SIZE",
+        help=(
+            "Mark files and directories larger than this size in the HTML report. "
+            "Accepts units: kb/k, mb/m, gb/g, tb/t (case-insensitive). "
+            "Example: 10gb, 500M, 2T."
+        ),
     )
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
+    argcomplete.autocomplete(parser)
     args = parser.parse_args(argv)
 
     try:
@@ -190,8 +197,8 @@ def main(argv: list[str] | None = None) -> int:
             ),
             progress_callback=progress.update,
         )
-        stats.file_alert_bytes = args.flag_files_over
-        stats.directory_alert_bytes = args.flag_directories_over
+        stats.file_alert_bytes = args.flag
+        stats.directory_alert_bytes = args.flag
         output_path = write_report(output_path_arg, stats)
     except (FileNotFoundError, NotADirectoryError, PermissionError, OSError) as exc:
         print(f"diskmop: {exc}", file=sys.stderr)

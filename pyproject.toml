@@ -9,6 +9,7 @@ description = "Scan a directory tree and generate an interactive HTML disk usage
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
+dependencies = ["argcomplete>=3.1"]
 authors = [
   { name = "OpenAI Codex" }
 ]
