@@ -5,6 +5,7 @@ import argparse
 from pathlib import Path
 import sys
 import time
+import webbrowser
 
 import argcomplete
 
@@ -170,6 +171,11 @@ def build_parser() -> argparse.ArgumentParser:
             "Example: 10gb, 500M, 2T."
         ),
     )
+    parser.add_argument(
+        "--no-open",
+        action="store_true",
+        help="Do not open the report in a browser after generation.",
+    )
     return parser
 
 
@@ -217,4 +223,6 @@ def main(argv: list[str] | None = None) -> int:
         )
     if stats.errors:
         print(f"Encountered {len(stats.errors)} filesystem errors during the scan")
+    if not args.no_open:
+        webbrowser.open(output_path.as_uri())
     return 0

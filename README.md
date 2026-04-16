@@ -40,6 +40,7 @@ diskmop [path] [options]
 | `-o`, `--output PATH` | `diskmop-report.html` | HTML report destination |
 | `-H`, `--hide-hidden` | off | Skip entries whose names start with a dot |
 | `-f`, `--flag SIZE` | off | Mark files and directories larger than this size in the report |
+| `--no-open` | off | Do not open the report in a browser after generation |
 | `--max-files N` | 5000 | Maximum files to embed in the report |
 | `--max-directories N` | 2000 | Maximum directories to embed in the report |
 

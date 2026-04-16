@@ -66,6 +66,7 @@ def render_report(stats: ScanStats) -> str:
       --accent: #1463ff;
       --accent-soft: rgba(20, 99, 255, 0.12);
       --accent-2: #00a67e;
+      --flag: #d3532c;
       --danger: #c73b34;
       --shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
       --radius: 20px;
@@ -305,7 +306,7 @@ def render_report(stats: ScanStats) -> str:
       background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent), white 30%));
     }}
     .bar-fill.alert {{
-      background: linear-gradient(90deg, #d3532c, #ff8c5a);
+      background: linear-gradient(90deg, var(--flag), color-mix(in srgb, var(--flag), white 40%));
     }}
     .ext-row {{
       display: grid;
@@ -339,8 +340,8 @@ def render_report(stats: ScanStats) -> str:
       color: var(--muted);
     }}
     .tag.alert {{
-      background: rgba(199, 59, 52, 0.12);
-      color: var(--danger);
+      background: color-mix(in srgb, var(--flag), white 88%);
+      color: var(--flag);
       font-weight: 700;
     }}
     .section-card {{
@@ -591,9 +592,9 @@ def render_report(stats: ScanStats) -> str:
       color: var(--text);
     }}
     .note-item.alert {{
-      background: rgba(199, 59, 52, 0.08);
-      color: var(--danger);
-      border-color: rgba(199, 59, 52, 0.12);
+      background: color-mix(in srgb, var(--flag), white 92%);
+      color: var(--flag);
+      border-color: color-mix(in srgb, var(--flag), white 80%);
     }}
     .note-item strong {{
       display: block;
@@ -644,10 +645,11 @@ def render_report(stats: ScanStats) -> str:
     </button>
     <div class="settings-panel" id="settings-panel">
       <h3>Highlight Colors</h3>
-      <p>Adjust the two report accent colors.</p>
+      <p>Adjust the report accent and flag colors.</p>
       <div class="picker-grid">
         <label class="picker"><input type="color" id="picker-accent"> Primary accent</label>
         <label class="picker"><input type="color" id="picker-accent-2"> Secondary accent</label>
+        <label class="picker"><input type="color" id="picker-flag"> Flagged items</label>
       </div>
       <div class="settings-actions">
         <button class="mini-btn" id="reset-theme" type="button">Reset</button>
@@ -698,7 +700,7 @@ def render_report(stats: ScanStats) -> str:
           <div class="control-group">
             <label class="search-control">
               <span>Search</span>
-              <span class="search-input-wrap"><input type="search" id="directory-search" placeholder="Filter by name or path"></span>
+              <span class="search-input-wrap"><input type="search" id="directory-search" placeholder="Filter by name or path (regex enabled)"></span>
             </label>
             <label class="rows-control">Rows
               <select id="directory-page-size">
@@ -732,7 +734,7 @@ def render_report(stats: ScanStats) -> str:
           <div class="control-group">
             <label class="search-control">
               <span>Search</span>
-              <span class="search-input-wrap"><input type="search" id="file-search" placeholder="Filter by file, extension, or path"></span>
+              <span class="search-input-wrap"><input type="search" id="file-search" placeholder="Filter by file, extension, or path (regex enabled)"></span>
             </label>
             <label class="rows-control">Rows
               <select id="file-page-size">
@@ -779,6 +781,7 @@ def render_report(stats: ScanStats) -> str:
     const defaultTheme = {{
       accent: "#1463ff",
       accent2: "#00a67e",
+      flag: "#d3532c",
     }};
 
     const fmtBytes = (value) => {{
@@ -809,11 +812,21 @@ def render_report(stats: ScanStats) -> str:
       const root = document.documentElement;
       root.style.setProperty("--accent", theme.accent);
       root.style.setProperty("--accent-2", theme.accent2);
+      root.style.setProperty("--flag", theme.flag || defaultTheme.flag);
       const accent = hexToRgb(theme.accent);
       root.style.setProperty("--accent-soft", `rgba(${{accent.r}}, ${{accent.g}}, ${{accent.b}}, 0.12)`);
       localStorage.setItem(storageKey, JSON.stringify(theme));
       byId("picker-accent").value = theme.accent;
       byId("picker-accent-2").value = theme.accent2;
+      byId("picker-flag").value = theme.flag || defaultTheme.flag;
+    }}
+
+    function currentTheme() {{
+      return {{
+        accent: byId("picker-accent").value,
+        accent2: byId("picker-accent-2").value,
+        flag: byId("picker-flag").value,
+      }};
     }}
 
     function setupThemeControls() {{
@@ -821,18 +834,9 @@ def render_report(stats: ScanStats) -> str:
       const initial = stored ? JSON.parse(stored) : defaultTheme;
       applyTheme(initial);
 
-      byId("picker-accent").addEventListener("input", () => {{
-        applyTheme({{
-          accent: byId("picker-accent").value,
-          accent2: byId("picker-accent-2").value,
-        }});
-      }});
-      byId("picker-accent-2").addEventListener("input", () => {{
-        applyTheme({{
-          accent: byId("picker-accent").value,
-          accent2: byId("picker-accent-2").value,
-        }});
-      }});
+      byId("picker-accent").addEventListener("input", () => applyTheme(currentTheme()));
+      byId("picker-accent-2").addEventListener("input", () => applyTheme(currentTheme()));
+      byId("picker-flag").addEventListener("input", () => applyTheme(currentTheme()));
       byId("reset-theme").addEventListener("click", () => applyTheme(defaultTheme));
       byId("settings-toggle").addEventListener("click", () => {{
         byId("settings-panel").classList.toggle("open");
@@ -961,7 +965,17 @@ def render_report(stats: ScanStats) -> str:
         const term = byId(config.searchId).value.trim().toLowerCase();
         const rows = config.rows.filter((row) => {{
           if (!term) return true;
-          return JSON.stringify(row).toLowerCase().includes(term);
+          const pattern = term.replace(/(?<!\.)\*/g, '.*');
+          try {{
+            const re = new RegExp(pattern);
+            return config.searchFields.some(
+              (f) => typeof row[f] === 'string' && re.test(row[f].toLowerCase())
+            );
+          }} catch {{
+            return config.searchFields.some(
+              (f) => typeof row[f] === 'string' && row[f].toLowerCase().includes(term)
+            );
+          }}
         }});
         rows.sort((left, right) => {{
           const a = left[state.sortKey];
@@ -1064,6 +1078,7 @@ def render_report(stats: ScanStats) -> str:
 
     buildTable({{
       rows: data.directories,
+      searchFields: ["name", "path"],
       defaultSort: "size",
       mountId: "directory-table-wrap",
       metaId: "directory-table-meta",
@@ -1091,6 +1106,7 @@ def render_report(stats: ScanStats) -> str:
 
     buildTable({{
       rows: data.files,
+      searchFields: ["name", "path", "extension"],
       defaultSort: "size",
       mountId: "file-table-wrap",
       metaId: "file-table-meta",
