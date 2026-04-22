@@ -22,8 +22,6 @@ It is designed to handle deep and large trees without recursive Python calls. Ve
 pipx install .
 ```
 
-For development:
-
 ## Usage
 
 ```
